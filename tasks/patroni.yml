@@ -1,0 +1,77 @@
+- block:
+  - name: Install gcc
+    dnf:
+      name: gcc
+      state: latest
+  - name: Install python3-devel
+    dnf:
+      name: python3-devel
+      state: latest
+  - name: Install setuptools
+    pip:
+      name: setuptools
+      state: latest
+      executable: pip3
+      extra_args: "--trusted-host=pypi.python.org --trusted-host=pypi.org --trusted-host=files.pythonhosted.org"
+      umask: "0022"
+    environment:
+      PATH: "{{ ansible_env.PATH }}:/usr/local/bin:/usr/bin"
+  - name: Install patroni
+    pip:
+      name: patroni
+      state: latest
+      executable: pip3
+      extra_args: "--trusted-host=pypi.python.org --trusted-host=pypi.org --trusted-host=files.pythonhosted.org"
+      umask: "0022"
+    environment:
+      PATH: "{{ ansible_env.PATH }}:/usr/local/bin:/usr/bin"
+  - name: Install psycopg
+    pip:
+      name: psycopg
+      state: latest
+      executable: pip3
+      extra_args: "--trusted-host=pypi.python.org --trusted-host=pypi.org --trusted-host=files.pythonhosted.org"
+      umask: "0022"
+    environment:
+      PATH: "{{ ansible_env.PATH }}:/usr/local/bin:/usr/bin"
+  - name: Install python-etcd
+    pip:
+      name: python-etcd
+      state: latest
+      executable: pip3
+      extra_args: "--trusted-host=pypi.python.org --trusted-host=pypi.org --trusted-host=files.pythonhosted.org"
+      umask: "0022"
+    environment:
+      PATH: "{{ ansible_env.PATH }}:/usr/local/bin:/usr/bin"
+  - name: "Create a patroni test config default"
+    ansible.builtin.template:
+      src: templates/patroni.yml.j2
+      dest: /etc/patroni.yml
+      owner: postgres
+      group: postgres
+      mode: 0755
+  - name: "Create a patroni config systemd"
+    ansible.builtin.template:
+      src: templates/patroni.service.j2
+      dest: /etc/systemd/system/patroni.service
+      owner: postgres
+      group: postgres
+      mode: 0755
+  - name: "Create directory /var/log/postgresql/"
+    file:
+      path: /var/log/postgresql
+      state: directory
+      owner: postgres
+      group: postgres
+      mode: 0755
+  - name: Recursively remove directory /var/lib/pgsql/14/data 2
+    ansible.builtin.file:
+      path: /var/lib/pgsql/14/data
+      state: absent
+  - name: patroni enable & start
+    systemd:
+      name: patroni
+      enabled: yes
+      state: started
+  tags:
+    - patroni

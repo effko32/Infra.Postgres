@@ -1,0 +1,35 @@
+- name: Gather facts
+  hosts: '{{ target }}'
+  gather_facts: yes
+  become: yes
+  vars_files:
+    - vars/vars.yml
+  pre_tasks:
+    - name: Oracle settings node setup
+      include_tasks: tasks/settings.yml
+      when: ansible_facts['distribution'] == "OracleLinux" and 'linux' in group_names
+      tags:
+        - settings
+  tasks:
+    - name: Oracle HAProxy node setup
+      include_tasks: tasks/haproxy.yml
+      when: ansible_facts['distribution'] == "OracleLinux" and 'haproxy' in group_names
+      tags:
+        - haproxy
+    - name: Oracle etcd node setup
+      include_tasks: tasks/etcd.yml
+      when: ansible_facts['distribution'] == "OracleLinux" and 'etcd' in group_names
+      tags:
+        - etcd
+    - name: Oracle postgres node setup
+      include_tasks: tasks/postgres.yml
+      when: ansible_facts['distribution'] == "OracleLinux" and 'postgres' in group_names
+      tags:
+        - postgres
+    - name: Oracle patroni node setup
+      include_tasks: tasks/patroni.yml
+      when: ansible_facts['distribution'] == "OracleLinux" and 'postgres' in group_names
+      tags:
+        - patroni
+
+    

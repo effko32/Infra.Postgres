@@ -1,0 +1,86 @@
+- block:
+  - name: Install required packages psycorg2
+    dnf:
+      name:
+        - python3-psycopg2
+      state: present
+  - name: Add Postgres 14 repo
+    shell: |
+      dnf install -y https://download.postgresql.org/pub/repos/yum/reporpms/EL-8-x86_64/pgdg-redhat-repo-latest.noarch.rpm
+    args:
+      warn: no
+  - name: Disable built-in PostgreSQL module
+    shell: |
+      dnf -qy module disable postgresql
+    args:
+      warn: no
+  - name: Recursively remove directory /var/lib/pgsql/14/data
+    ansible.builtin.file:
+      path: /var/lib/pgsql/14/data
+      state: absent
+  - name: Install postgresql
+    dnf:
+      name:
+        - postgresql14-server
+        - postgresql14-contrib
+    # notify:
+    #   - Enable Postgresql
+  - name: Initialize the PostgreSQL database
+    shell: |
+      /usr/pgsql-14/bin/postgresql-14-setup initdb
+  - name: Ensure PostgreSQL is listening on *
+    lineinfile:
+      dest: /var/lib/pgsql/14/data/postgresql.conf
+      regexp: '^listen_addresses\s*='
+      line: "listen_addresses='*'"
+      state: present
+    # notify: Restart Postgresql
+  - name: Add new configuration to "pg_hba.conf"
+    blockinfile:
+      dest: /var/lib/pgsql/14/data/pg_hba.conf
+      block: |
+        host    all             all             0.0.0.0/0                md5
+        host    all             all             ::/0                     md5
+    # notify: Restart Postgresql
+  - name: Change peer identification to trust
+    shell: /bin/sed -i '/^local/s/peer/trust/' /var/lib/pgsql/14/data/pg_hba.conf
+    args:
+      warn: no
+    # notify: Restart Postgresql
+  # # - name: Restart Postgresql 1
+  # #   systemd:
+  # #     name: postgresql-14
+  # #     state: restarted
+  # # - name: Start Postgresql server
+  # #   systemd:
+  # #     name: postgresql-14
+  # #     state: started
+    # notify:
+    #   - Restart Postgresql
+  # # - name: Create a Superuser PostgreSQL database user
+  # #   become: yes
+  # #   become_user: postgres
+  # #   postgresql_user:
+  # #     name: '{{ postgres_root_user }}'
+  # #     password: '{{ postgres_root_pass }}'
+  # #     role_attr_flags: CREATEDB,SUPERUSER,CREATEROLE
+  # #     encrypted: yes
+  # #     state: present
+  # - name: Restart Postgresql
+  #   systemd:
+  #     name: postgresql-14
+  #     state: restarted
+  # - name: Start Postgresql
+  #   systemd:
+  #     name: postgresql-14
+  #     state: started
+  # - name: Stop Postgresql
+  #   systemd:
+  #     name: postgresql-14
+  #     state: stopped
+  # - name: Enable Postgresql
+  #   systemd:
+  #     name: postgresql-14
+  #     enabled: yes
+  tags:
+    - postgres
